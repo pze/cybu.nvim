@@ -12,7 +12,7 @@ vars.behavior = {
     paging = "paging",
   },
 }
-vars.style_path = { absolute = "absolute", relative = "relative", tail = "tail" }
+vars.style_path = { absolute = "absolute", relative = "relative", tail = "tail", filename_first = "filename_first" }
 vars.style_path_abbreviation = { shortened = "shortened", none = "none" }
 vars.pos_relative_to = { win = "win", editor = "editor", cursor = "cursor" }
 vars.pos_anchor = {

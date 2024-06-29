@@ -37,7 +37,7 @@ cybu.get_bufs = function()
     if 1 ~= vim.fn.buflisted(id) then
       return false
     end
-    if vim.tbl_contains(c.opts.exclude, vim.api.nvim_buf_get_option(id, "filetype")) then
+    if vim.tbl_contains(c.opts.exclude, vim.api.nvim_get_option_value("filetype", { buf = id })) then
       return false
     end
     return true
@@ -52,6 +52,8 @@ cybu.get_bufs = function()
   for i, id in ipairs(bids) do
     local name = vim.fn.bufname(id)
 
+    local icon = u.get_icon_or_separator(name, c.opts.style.devicons.enabled)
+
     -- adjust buf names
     if c.opts.style.path == v.style_path.absolute then
       name = vim.fn.fnamemodify(name, ":p")
@@ -59,16 +61,22 @@ cybu.get_bufs = function()
       name = u.get_relative_path(name, cwd_path)
     elseif c.opts.style.path == v.style_path.tail then
       name = vim.fn.fnamemodify(name, ":t")
+    elseif c.opts.style.path == v.style_path.filename_first then
+      local head = vim.fn.fnamemodify(name, ":h")
+      name = ("%s%s"):format(vim.fn.fnamemodify(name, ":t"), head == "." and "" or "│" .. head)
     end
 
-    if c.opts.style.path_abbreviation == v.style_path_abbreviation.shortened then
+    if
+      c.opts.style.path ~= v.style_path.filename_first
+      and c.opts.style.path_abbreviation == v.style_path_abbreviation.shortened
+    then
       name = u.shorten_path(name)
     end
 
     table.insert(bufs, {
       id = id,
       name = name,
-      icon = u.get_icon_or_separator(name, c.opts.style.devicons.enabled),
+      icon = icon,
     })
     _state.lookup[id] = i
   end
@@ -210,8 +218,8 @@ cybu.get_cybu_buf = function()
   local cybu_buf
   if not _state.cybu_buf or not vim.api.nvim_buf_is_valid(_state.cybu_buf) then
     cybu_buf = vim.api.nvim_create_buf(false, true)
-    vim.api.nvim_buf_set_option(cybu_buf, "filetype", "cybu")
-    vim.api.nvim_buf_set_option(cybu_buf, "buftype", "nofile")
+    vim.api.nvim_set_option_value("filetype", "cybu", { buf = cybu_buf })
+    vim.api.nvim_set_option_value("buftype", "nofile", { buf = cybu_buf })
     _state.cybu_ns = vim.api.nvim_create_namespace("cybu")
   else
     cybu_buf = _state.cybu_buf
@@ -324,10 +332,12 @@ cybu.show_cybu_win = function()
   if not _state.cybu_win_id then
     _state.cybu_win_id = vim.api.nvim_open_win(_state.cybu_buf, false, win_opts)
     vim.api.nvim_exec_autocmds("User", { pattern = "CybuOpen" })
-    vim.api.nvim_win_set_option(
-      _state.cybu_win_id,
+    vim.api.nvim_set_option_value(
       "winhl",
-      string.format("NormalFloat:%s,FloatBorder:%s", c.opts.style.highlights.background, c.opts.style.highlights.border)
+      string.format("NormalFloat:%s,FloatBorder:%s", c.opts.style.highlights.background, c.opts.style.highlights.border),
+      {
+        win = _state.cybu_win_id,
+      }
     )
   end
 
